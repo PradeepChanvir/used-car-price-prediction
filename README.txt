@@ -1,0 +1,1 @@
+Used Car Price Prediction ML Project\n\nDataset -> Preprocessing -> Train/Test Split -> Random Forest -> Evaluation\n

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Used Car Price Predictor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                         Roboto, Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #111827, #1f3a5f);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 15px;
+            opacity: 0.85;
+        }
+
+        /* Main Container */
+        .container {
+            width: 92%;
+            max-width: 1050px;
+            margin: 35px auto;
+        }
+
+        /* Main Card */
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 30px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #111827;
+            border-left: 4px solid #2563eb;
+            padding-left: 12px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font-size: 14px;
+            background: white;
+            color: #111827;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Result */
+        .result-card {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            text-align: center;
+        }
+
+        .result-card h2 {
+            font-size: 17px;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-size: 36px;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .result-card p {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 25px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <h1>Used Car Price Predictor</h1>
+        <p>Machine Learning Based Used Car Price Estimation</p>
+    </header>
+
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <div class="card">
+
+            <form method="POST">
+
+                <!-- Car Information -->
+                <div class="section">
+
+                    <div class="section-title">
+                        Car Information
+                    </div>
+
+                    <div class="form-grid">
+
+                        <!-- Brand -->
+                        <div class="form-group">
+                            <label for="brand">Brand</label>
+
+                            <select name="brand" id="brand" required>
+                                <option value="">Select Brand</option>
+
+                                {% for brand in brands %}
+                                <option value="{{ brand }}"
+                                    {% if selected_brand == brand %}selected{% endif %}>
+                                    {{ brand }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+
+                        <!-- Model -->
+                        <div class="form-group">
+                            <label for="model">Model</label>
+
+                            <select name="model" id="model" required>
+                                <option value="">Select Model</option>
+
+                                {% for model in models %}
+                                <option value="{{ model }}"
+                                    {% if selected_model == model %}selected{% endif %}>
+                                    {{ model }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+
+                        <!-- Car Name -->
+                        <div class="form-group">
+                            <label for="car_name">Car Name</label>
+
+                            <select name="car_name" id="car_name" required>
+                                <option value="">Select Car</option>
+
+                                {% for car_name in car_names %}
+                                <option value="{{ car_name }}"
+                                    {% if selected_car_name == car_name %}selected{% endif %}>
+                                    {{ car_name }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+
+                        <!-- Vehicle Age -->
+                        <div class="form-group">
+                            <label for="vehicle_age">Vehicle Age (Years)</label>
+
+                            <input
+                                type="number"
+                                name="vehicle_age"
+                                id="vehicle_age"
+                                min="0"
+                                max="30"
+                                placeholder="Example: 5"
+                                required
+                            >
+                        </div>
+
+
+                        <!-- KM Driven -->
+                        <div class="form-group">
+                            <label for="km_driven">Kilometers Driven</label>
+
+                            <input
+                                type="number"
+                                name="km_driven"
+                                id="km_driven"
+                                min="0"
+                                placeholder="Example: 45000"
+                                required
+                            >
+                        </div>
+
+
+                        <!-- Seller Type -->
+                        <div class="form-group">
+                            <label for="seller_type">Seller Type</label>
+
+                            <select name="seller_type" id="seller_type" required>
+
+                                <option value="">Select Seller Type</option>
+
+                                {% for seller in seller_types %}
+                                <option value="{{ seller }}">
+                                    {{ seller }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+
+                        <!-- Fuel Type -->
+                        <div class="form-group">
+                            <label for="fuel_type">Fuel Type</label>
+
+                            <select name="fuel_type" id="fuel_type" required>
+
+                                <option value="">Select Fuel Type</option>
+
+                                {% for fuel in fuel_types %}
+                                <option value="{{ fuel }}">
+                                    {{ fuel }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+
+                        <!-- Transmission -->
+                        <div class="form-group">
+                            <label for="transmission_type">
+                                Transmission Type
+                            </label>
+
+                            <select
+                                name="transmission_type"
+                                id="transmission_type"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Transmission
+                                </option>
+
+                                {% for transmission in transmission_types %}
+                                <option value="{{ transmission }}">
+                                    {{ transmission }}
+                                </option>
+                                {% endfor %}
+
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- Technical Specifications -->
+                <div class="section">
+
+                    <div class="section-title">
+                        Technical Specifications
+                    </div>
+
+                    <div class="form-grid">
+
+                        <!-- Mileage -->
+                        <div class="form-group">
+                            <label for="mileage">
+                                Mileage (km/l)
+                            </label>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="mileage"
+                                id="mileage"
+                                min="0"
+                                placeholder="Example: 18.50"
+                                required
+                            >
+                        </div>
+
+
+                        <!-- Engine -->
+                        <div class="form-group">
+                            <label for="engine">
+                                Engine (CC)
+                            </label>
+
+                            <input
+                                type="number"
+                                name="engine"
+                                id="engine"
+                                min="0"
+                                placeholder="Example: 1197"
+                                required
+                            >
+                        </div>
+
+
+                        <!-- Max Power -->
+                        <div class="form-group">
+                            <label for="max_power">
+                                Max Power (bhp)
+                            </label>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="max_power"
+                                id="max_power"
+                                min="0"
+                                placeholder="Example: 82.00"
+                                required
+                            >
+                        </div>
+
+
+                        <!-- Seats -->
+                        <div class="form-group">
+                            <label for="seats">
+                                Number of Seats
+                            </label>
+
+                            <input
+                                type="number"
+                                name="seats"
+                                id="seats"
+                                min="1"
+                                max="15"
+                                placeholder="Example: 5"
+                                required
+                            >
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- Predict Button -->
+                <div class="button-container">
+
+                    <button type="submit" class="predict-btn">
+                        Predict Car Price
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <!-- Prediction Result -->
+            {% if prediction %}
+
+            <div class="result-card">
+
+                <h2>Estimated Selling Price</h2>
+
+                <div class="price">
+                    {{ prediction }}
+                </div>
+
+                <p>
+                    Estimated using the trained Random Forest Machine Learning model.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        Used Car Price Prediction System |
+        Machine Learning Project
+    </footer>
+
+</body>
+</html>
