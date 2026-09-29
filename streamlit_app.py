@@ -1,478 +1,536 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from pathlib import Path
 
-# ---------------------------------------------------------
-# PAGE CONFIGURATION
-# ---------------------------------------------------------
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+
 st.set_page_config(
-    page_title="Used Car Price Predictor",
-    page_icon="🚗",
+    page_title="AutoPrice - Used Car Price Predictor",
+    page_icon="🚘",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------------------------------------------
-# CUSTOM CSS
-# ---------------------------------------------------------
-st.markdown("""
-<style>
+# ============================================================
+# PATHS
+# ============================================================
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "cardekho_dataset.csv"
+MODEL_PATH = BASE_DIR / "best_car_price_model.pkl"
+IMAGE_PATH = BASE_DIR / "images" / "hero_car.jpg"
 
-* {
-    font-family: 'Inter', sans-serif;
-}
+# ============================================================
+# LOAD DATA AND MODEL
+# ============================================================
 
-.stApp {
-    background:
-        radial-gradient(circle at 10% 10%, rgba(120, 100, 255, 0.18), transparent 30%),
-        radial-gradient(circle at 90% 20%, rgba(0, 200, 255, 0.16), transparent 30%),
-        radial-gradient(circle at 50% 90%, rgba(180, 80, 255, 0.14), transparent 35%),
-        linear-gradient(135deg, #eef4ff 0%, #f7f2ff 50%, #edfaff 100%);
-}
-
-/* Hide Streamlit default elements */
-#MainMenu {
-    visibility: hidden;
-}
-
-footer {
-    visibility: hidden;
-}
-
-header {
-    visibility: hidden;
-}
-
-/* Main container */
-.block-container {
-    max-width: 1150px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-}
-
-/* Hero */
-.hero {
-    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
-    border-radius: 28px;
-    padding: 48px 50px;
-    color: white;
-    box-shadow: 0 20px 50px rgba(79, 70, 229, 0.30);
-    margin-bottom: 28px;
-    position: relative;
-    overflow: hidden;
-}
-
-.hero::before {
-    content: "";
-    position: absolute;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    right: -80px;
-    top: -100px;
-}
-
-.hero::after {
-    content: "";
-    position: absolute;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: rgba(0,220,255,0.10);
-    left: -70px;
-    bottom: -100px;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-}
-
-.hero-title {
-    font-size: 42px;
-    font-weight: 800;
-    margin: 0 0 12px 0;
-    letter-spacing: -1px;
-}
-
-.hero-subtitle {
-    font-size: 18px;
-    line-height: 1.6;
-    opacity: 0.92;
-    max-width: 700px;
-    margin-bottom: 22px;
-}
-
-.hero-badge {
-    display: inline-block;
-    background: rgba(255,255,255,0.16);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 50px;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* Information cards */
-.info-card {
-    background: rgba(255,255,255,0.88);
-    border: 1px solid rgba(255,255,255,0.95);
-    border-radius: 20px;
-    padding: 24px 18px;
-    text-align: center;
-    min-height: 145px;
-    box-shadow: 0 10px 30px rgba(50, 60, 100, 0.10);
-}
-
-.info-icon {
-    font-size: 30px;
-    margin-bottom: 8px;
-}
-
-.info-title {
-    font-size: 17px;
-    font-weight: 800;
-    color: #172033;
-    margin-bottom: 7px;
-}
-
-.info-text {
-    font-size: 13px;
-    color: #687386;
-}
-
-/* Section */
-.section-card {
-    background: rgba(255,255,255,0.90);
-    border-radius: 24px;
-    padding: 30px;
-    margin-top: 28px;
-    margin-bottom: 18px;
-    box-shadow: 0 10px 35px rgba(50, 60, 100, 0.10);
-    border: 1px solid rgba(255,255,255,0.95);
-}
-
-.section-title {
-    font-size: 25px;
-    font-weight: 800;
-    color: #182033;
-    margin-bottom: 5px;
-}
-
-.section-description {
-    color: #6b7280;
-    font-size: 14px;
-    margin-bottom: 20px;
-}
-
-/* Input labels */
-label {
-    font-weight: 600 !important;
-    color: #263246 !important;
-}
-
-/* Streamlit inputs */
-.stSelectbox > div > div,
-.stNumberInput > div > div {
-    border-radius: 12px !important;
-}
-
-/* Predict button */
-.stButton > button {
-    width: 100%;
-    border: none;
-    border-radius: 16px;
-    padding: 16px 20px;
-    font-size: 18px;
-    font-weight: 800;
-    color: white;
-    background: linear-gradient(90deg, #2563eb, #7c3aed);
-    box-shadow: 0 10px 25px rgba(79,70,229,0.30);
-    transition: all 0.2s ease;
-}
-
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 30px rgba(79,70,229,0.40);
-}
-
-/* Prediction result */
-.result-card {
-    background: linear-gradient(135deg, #111827, #1e293b);
-    border-radius: 24px;
-    padding: 35px;
-    text-align: center;
-    margin-top: 28px;
-    box-shadow: 0 15px 40px rgba(15,23,42,0.25);
-}
-
-.result-label {
-    color: #cbd5e1;
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.result-price {
-    color: white;
-    font-size: 42px;
-    font-weight: 800;
-    margin: 0;
-}
-
-.result-note {
-    color: #94a3b8;
-    font-size: 13px;
-    margin-top: 10px;
-}
-
-/* Footer */
-.custom-footer {
-    text-align: center;
-    padding: 30px 10px 10px 10px;
-    color: #64748b;
-    font-size: 13px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# ---------------------------------------------------------
-# LOAD DATA
-# ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    return pd.read_csv("cardekho_dataset.csv")
+    return pd.read_csv(DATA_PATH)
 
 
-# ---------------------------------------------------------
-# LOAD MODEL
-# ---------------------------------------------------------
 @st.cache_resource
 def load_model():
-    return joblib.load("best_car_price_model.pkl")
+    return joblib.load(MODEL_PATH)
 
 
 df = load_data()
 model = load_model()
 
+# ============================================================
+# GLOBAL CSS
+# ============================================================
 
-# ---------------------------------------------------------
-# HERO SECTION
-# ---------------------------------------------------------
-st.markdown("""
-<div class="hero">
-    <div class="hero-content">
-        <div class="hero-title">🚗 Used Car Price Predictor</div>
-        <div class="hero-subtitle">
-            Estimate the market value of a used car using Machine Learning.
-            Enter the vehicle details below and get an instant price prediction.
-        </div>
-        <div class="hero-badge">
-            ⚡ Random Forest Regression &nbsp; • &nbsp; 📊 Data-Driven Prediction
-        </div>
-    </div>
+st.html("""
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.stApp {
+    background: #f7f7fb;
+}
+
+/* Remove default Streamlit spacing */
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+    max-width: 1400px;
+}
+
+/* Navbar */
+.navbar {
+    background: white;
+    border-radius: 18px;
+    padding: 15px 28px;
+    margin-bottom: 28px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: 800;
+    color: #171717;
+}
+
+.logo span {
+    color: #7c3aed;
+}
+
+.nav-text {
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Hero */
+.hero {
+    background: linear-gradient(135deg, #171329 0%, #31205e 55%, #6d28d9 100%);
+    border-radius: 28px;
+    padding: 55px;
+    min-height: 440px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 18px 45px rgba(79, 45, 140, 0.25);
+}
+
+.hero-content {
+    width: 52%;
+    position: relative;
+    z-index: 3;
+}
+
+.hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 15px;
+    border-radius: 30px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.hero h1 {
+    font-size: 48px;
+    line-height: 1.1;
+    margin: 0 0 18px 0;
+    font-weight: 800;
+}
+
+.hero h1 span {
+    color: #c4b5fd;
+}
+
+.hero p {
+    color: #ddd6fe;
+    font-size: 17px;
+    line-height: 1.7;
+    margin-bottom: 25px;
+}
+
+.hero-image {
+    position: absolute;
+    right: -20px;
+    bottom: 0;
+    width: 55%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0.92;
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 30%,
+        black 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 30%,
+        black 100%
+    );
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(23,19,41,0.98) 0%,
+        rgba(23,19,41,0.82) 35%,
+        rgba(49,32,94,0.25) 70%,
+        rgba(49,32,94,0.05) 100%
+    );
+    z-index: 1;
+}
+
+/* Section title */
+.section-title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 800;
+    color: #18181b;
+    margin: 45px 0 8px 0;
+}
+
+.section-subtitle {
+    text-align: center;
+    color: #71717a;
+    margin-bottom: 28px;
+}
+
+/* Cards */
+.info-card {
+    background: white;
+    padding: 28px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+    height: 100%;
+    border: 1px solid #eee;
+}
+
+.info-icon {
+    font-size: 30px;
+    margin-bottom: 12px;
+}
+
+.info-card h3 {
+    margin: 0 0 8px 0;
+    color: #18181b;
+    font-size: 20px;
+}
+
+.info-card p {
+    color: #71717a;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+/* Prediction box */
+.prediction-box {
+    background: linear-gradient(135deg, #6d28d9, #9333ea);
+    color: white;
+    padding: 30px;
+    border-radius: 22px;
+    text-align: center;
+    margin-top: 20px;
+    box-shadow: 0 12px 30px rgba(109,40,217,0.25);
+}
+
+.prediction-label {
+    font-size: 14px;
+    opacity: 0.85;
+}
+
+.prediction-price {
+    font-size: 42px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+/* Stats */
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    text-align: center;
+    border: 1px solid #eee;
+}
+
+.stat-number {
+    color: #6d28d9;
+    font-size: 30px;
+    font-weight: 800;
+}
+
+.stat-label {
+    color: #71717a;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* Form */
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    border: 1px solid #eee;
+}
+
+/* Button */
+.stButton > button {
+    background: linear-gradient(135deg, #6d28d9, #9333ea);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 13px 25px;
+    font-weight: 700;
+    width: 100%;
+}
+
+.stButton > button:hover {
+    background: linear-gradient(135deg, #5b21b6, #7e22ce);
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: #888;
+    padding: 35px 0 10px 0;
+    font-size: 13px;
+}
+
+</style>
+""")
+
+# ============================================================
+# NAVBAR
+# ============================================================
+
+st.html("""
+<div class="navbar">
+    <div class="logo">Auto<span>Price</span> 🚘</div>
+    <div class="nav-text">Machine Learning • Used Car Price Prediction</div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
+# ============================================================
+# HERO SECTION
+# ============================================================
 
-# ---------------------------------------------------------
-# INFORMATION CARDS
-# ---------------------------------------------------------
+if IMAGE_PATH.exists():
+
+    import base64
+
+    with open(IMAGE_PATH, "rb") as image_file:
+        image_base64 = base64.b64encode(
+            image_file.read()
+        ).decode()
+
+    image_src = f"data:image/jpeg;base64,{image_base64}"
+
+    st.html(f"""
+    <div class="hero">
+
+        <div class="hero-overlay"></div>
+
+        <img
+            src="{image_src}"
+            class="hero-image"
+        >
+
+        <div class="hero-content">
+
+            <div class="hero-badge">
+                ✨ Machine Learning Powered
+            </div>
+
+            <h1>
+                Know Your Car's
+                <span>Real Value.</span>
+            </h1>
+
+            <p>
+                Predict the estimated selling price of a used car
+                using vehicle specifications and a trained
+                Random Forest machine learning model.
+            </p>
+
+        </div>
+
+    </div>
+    """)
+
+else:
+
+    st.warning(
+        "Hero image not found. Please check images/hero_car.jpg"
+    )
+
+# ============================================================
+# STATISTICS
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Model at a Glance</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="section-subtitle">Built and evaluated using real used-car data</div>',
+    unsafe_allow_html=True
+)
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown("""
-    <div class="info-card">
-        <div class="info-icon">🤖</div>
-        <div class="info-title">ML Powered</div>
-        <div class="info-text">Random Forest Regression</div>
+    <div class="stat-card">
+        <div class="stat-number">15,411</div>
+        <div class="stat-label">Dataset Records</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
     st.markdown("""
-    <div class="info-card">
-        <div class="info-icon">📈</div>
-        <div class="info-title">Model Performance</div>
-        <div class="info-text">R² Score: 93.77%</div>
+    <div class="stat-card">
+        <div class="stat-number">93.77%</div>
+        <div class="stat-label">R² Score</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col3:
     st.markdown("""
-    <div class="info-card">
-        <div class="info-icon">🚘</div>
-        <div class="info-title">Multiple Features</div>
-        <div class="info-text">12 vehicle attributes</div>
+    <div class="stat-card">
+        <div class="stat-number">200</div>
+        <div class="stat-label">Random Forest Trees</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col4:
     st.markdown("""
-    <div class="info-card">
-        <div class="info-icon">⚡</div>
-        <div class="info-title">Instant Result</div>
-        <div class="info-text">Fast price estimation</div>
+    <div class="stat-card">
+        <div class="stat-number">12+</div>
+        <div class="stat-label">Vehicle Features</div>
     </div>
     """, unsafe_allow_html=True)
 
+# ============================================================
+# PREDICTION SECTION
+# ============================================================
 
-# ---------------------------------------------------------
-# CAR INFORMATION SECTION
-# ---------------------------------------------------------
-st.markdown("""
-<div class="section-card">
-    <div class="section-title">🚘 Car Information</div>
-    <div class="section-description">
-        Select the basic details of the vehicle.
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">Predict Your Car Price</div>',
+    unsafe_allow_html=True
+)
 
-col1, col2, col3 = st.columns(3)
+st.markdown(
+    '<div class="section-subtitle">Enter the vehicle details below</div>',
+    unsafe_allow_html=True
+)
 
-with col1:
+with st.container():
+
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+
     brands = sorted(df["brand"].dropna().unique())
-    selected_brand = st.selectbox(
-        "🏷️ Brand",
-        brands
-    )
-
-with col2:
     models = sorted(df["model"].dropna().unique())
-    selected_model = st.selectbox(
-        "🚘 Model",
-        models
-    )
-
-with col3:
     car_names = sorted(df["car_name"].dropna().unique())
-    selected_car_name = st.selectbox(
-        "🚗 Car Name",
-        car_names
-    )
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    vehicle_age = st.number_input(
-        "📅 Vehicle Age (Years)",
-        min_value=0,
-        max_value=30,
-        value=5,
-        step=1
-    )
-
-with col2:
-    km_driven = st.number_input(
-        "🛣️ Kilometers Driven",
-        min_value=0,
-        max_value=1000000,
-        value=50000,
-        step=1000
-    )
-
-with col3:
     seller_types = sorted(df["seller_type"].dropna().unique())
-    seller_type = st.selectbox(
-        "👤 Seller Type",
-        seller_types
-    )
-
-
-# ---------------------------------------------------------
-# TECHNICAL SPECIFICATIONS
-# ---------------------------------------------------------
-st.markdown("""
-<div class="section-card">
-    <div class="section-title">⚙️ Technical Specifications</div>
-    <div class="section-description">
-        Enter the technical specifications of the vehicle.
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
     fuel_types = sorted(df["fuel_type"].dropna().unique())
-    fuel_type = st.selectbox(
-        "⛽ Fuel Type",
-        fuel_types
-    )
-
-with col2:
     transmission_types = sorted(
         df["transmission_type"].dropna().unique()
     )
-    transmission_type = st.selectbox(
-        "⚙️ Transmission",
-        transmission_types
+
+    with col1:
+        brand = st.selectbox("Brand", brands)
+
+        model_name = st.selectbox(
+            "Model",
+            models
+        )
+
+        car_name = st.selectbox(
+            "Car Name",
+            car_names
+        )
+
+        vehicle_age = st.number_input(
+            "Vehicle Age (years)",
+            min_value=0,
+            max_value=30,
+            value=5
+        )
+
+    with col2:
+
+        km_driven = st.number_input(
+            "Kilometres Driven",
+            min_value=0,
+            max_value=1000000,
+            value=50000,
+            step=1000
+        )
+
+        seller_type = st.selectbox(
+            "Seller Type",
+            seller_types
+        )
+
+        fuel_type = st.selectbox(
+            "Fuel Type",
+            fuel_types
+        )
+
+        transmission_type = st.selectbox(
+            "Transmission",
+            transmission_types
+        )
+
+    with col3:
+
+        mileage = st.number_input(
+            "Mileage",
+            min_value=1.0,
+            max_value=100.0,
+            value=18.0,
+            step=0.1
+        )
+
+        engine = st.number_input(
+            "Engine (CC)",
+            min_value=500,
+            max_value=6000,
+            value=1200,
+            step=50
+        )
+
+        max_power = st.number_input(
+            "Max Power (BHP)",
+            min_value=20.0,
+            max_value=1000.0,
+            value=80.0,
+            step=1.0
+        )
+
+        seats = st.number_input(
+            "Seats",
+            min_value=2,
+            max_value=15,
+            value=5
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    predict_button = st.button(
+        "🚀 Predict Estimated Selling Price"
     )
 
-with col3:
-    mileage = st.number_input(
-        "📊 Mileage (km/l)",
-        min_value=0.0,
-        max_value=100.0,
-        value=18.0,
-        step=0.1
-    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    engine = st.number_input(
-        "🔧 Engine (CC)",
-        min_value=500,
-        max_value=10000,
-        value=1200,
-        step=100
-    )
-
-with col2:
-    max_power = st.number_input(
-        "⚡ Max Power (bhp)",
-        min_value=20.0,
-        max_value=2000.0,
-        value=80.0,
-        step=5.0
-    )
-
-with col3:
-    seats = st.number_input(
-        "💺 Seats",
-        min_value=2,
-        max_value=15,
-        value=5,
-        step=1
-    )
-
-
-# ---------------------------------------------------------
-# PREDICTION BUTTON
-# ---------------------------------------------------------
-st.markdown("<br>", unsafe_allow_html=True)
-
-predict_button = st.button(
-    "🔮 Predict Used Car Price"
-)
-
-
-# ---------------------------------------------------------
+# ============================================================
 # PREDICTION
-# ---------------------------------------------------------
+# ============================================================
+
 if predict_button:
 
     input_data = pd.DataFrame({
-        "car_name": [selected_car_name],
-        "brand": [selected_brand],
-        "model": [selected_model],
+        "car_name": [car_name],
+        "brand": [brand],
+        "model": [model_name],
         "vehicle_age": [vehicle_age],
         "km_driven": [km_driven],
         "seller_type": [seller_type],
@@ -484,31 +542,172 @@ if predict_button:
         "seats": [seats]
     })
 
-    try:
-        predicted_price = model.predict(input_data)[0]
+    predicted_price = model.predict(input_data)[0]
 
-        st.markdown(f"""
-        <div class="result-card">
-            <div class="result-label">Estimated Used Car Market Value</div>
-            <div class="result-price">₹{predicted_price:,.0f}</div>
-            <div class="result-note">
-                This estimate is generated using the trained Random Forest regression model.
-            </div>
+    st.markdown(f"""
+    <div class="prediction-box">
+        <div class="prediction-label">
+            Estimated Selling Price
         </div>
-        """, unsafe_allow_html=True)
+        <div class="prediction-price">
+            ₹{predicted_price:,.0f}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    except Exception as e:
-        st.error(f"Prediction error: {e}")
+# ============================================================
+# HOW IT WORKS
+# ============================================================
 
+st.markdown(
+    '<div class="section-title">How It Works</div>',
+    unsafe_allow_html=True
+)
 
-# ---------------------------------------------------------
+st.markdown(
+    '<div class="section-subtitle">Three simple steps to estimate your car price</div>',
+    unsafe_allow_html=True
+)
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">🚘</div>
+        <h3>1. Enter Details</h3>
+        <p>
+            Provide information such as brand, model,
+            age, kilometres driven, fuel type,
+            engine and other specifications.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with c2:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">🧠</div>
+        <h3>2. ML Prediction</h3>
+        <p>
+            The trained Random Forest regression model
+            processes the vehicle features and estimates
+            its selling price.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with c3:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">💰</div>
+        <h3>3. Get Estimate</h3>
+        <p>
+            The application displays the estimated
+            selling price instantly in Indian Rupees.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============================================================
+# TECHNOLOGY
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Technology Stack</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="section-subtitle">Technologies used to build the application</div>',
+    unsafe_allow_html=True
+)
+
+tech1, tech2, tech3, tech4 = st.columns(4)
+
+with tech1:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">🐍</div>
+        <h3>Python</h3>
+        <p>Core programming language used for data processing and ML.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tech2:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">📊</div>
+        <h3>Scikit-learn</h3>
+        <p>Machine learning library used to train the regression model.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tech3:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">⚡</div>
+        <h3>Streamlit</h3>
+        <p>Framework used to create the interactive web application.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tech4:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-icon">🌲</div>
+        <h3>Random Forest</h3>
+        <p>Regression algorithm used for used-car price prediction.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============================================================
+# MODEL PERFORMANCE
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Model Performance</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="section-subtitle">Evaluation results on the test dataset</div>',
+    unsafe_allow_html=True
+)
+
+p1, p2, p3 = st.columns(3)
+
+with p1:
+    st.markdown("""
+    <div class="stat-card">
+        <div class="stat-number">₹98.6K</div>
+        <div class="stat-label">Mean Absolute Error</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with p2:
+    st.markdown("""
+    <div class="stat-card">
+        <div class="stat-number">₹216.6K</div>
+        <div class="stat-label">RMSE</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with p3:
+    st.markdown("""
+    <div class="stat-card">
+        <div class="stat-number">0.9377</div>
+        <div class="stat-label">R² Score</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============================================================
 # FOOTER
-# ---------------------------------------------------------
-st.markdown("""
-<div class="custom-footer">
-    🚗 Used Car Price Prediction System &nbsp; • &nbsp;
-    Machine Learning Application
-    <br>
-    Built using Python, Scikit-learn and Streamlit
+# ============================================================
+
+st.html("""
+<div class="footer">
+    AutoPrice — Used Car Price Prediction System<br>
+    Developed using Machine Learning & Streamlit
 </div>
-""", unsafe_allow_html=True)
+""")
