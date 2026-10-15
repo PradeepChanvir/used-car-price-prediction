@@ -149,10 +149,12 @@ models = {
         (
             "model",
             RandomForestRegressor(
-                n_estimators=200,
-                random_state=42,
-                n_jobs=-1
-            )
+    n_estimators=50,
+    max_depth=20,
+    min_samples_leaf=2,
+    random_state=42,
+    n_jobs=-1
+)
         )
     ])
 }
@@ -281,11 +283,6 @@ joblib.dump(
     "best_car_price_model.pkl"
 )
 
-# Save all three models for future use.
-joblib.dump(
-    trained_models,
-    "all_car_price_models.pkl"
-)
 
 with open("best_model.json", "w") as file:
     json.dump(
@@ -293,10 +290,8 @@ with open("best_model.json", "w") as file:
         file,
         indent=4
     )
-
 print("\nSaved files:")
 print("- best_car_price_model.pkl")
-print("- all_car_price_models.pkl")
 print("- model_comparison.csv")
 print("- model_comparison.json")
 print("- best_model.json")
