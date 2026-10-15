@@ -1,0 +1,23 @@
+[
+    {
+        "Model": "Decision Tree",
+        "MAE": 121675.52438101417,
+        "RMSE": 284861.3088998995,
+        "R2": 0.8922051963344164,
+        "Training Time (seconds)": 0.25
+    },
+    {
+        "Model": "Support Vector Regression",
+        "MAE": 386416.3206004371,
+        "RMSE": 870220.6471196478,
+        "R2": -0.005980729405316465,
+        "Training Time (seconds)": 5.97
+    },
+    {
+        "Model": "Random Forest",
+        "MAE": 98609.18775117015,
+        "RMSE": 216601.34578551858,
+        "R2": 0.9376763046221104,
+        "Training Time (seconds)": 5.14
+    }
+]
